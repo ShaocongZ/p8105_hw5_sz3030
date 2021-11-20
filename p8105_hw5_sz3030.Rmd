@@ -23,7 +23,7 @@ names_dtf =
 
 ## Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
 
-```{r message=FALSE}
+```{r message=FALSE, warning=FALSE}
 names_dtf = names_dtf %>%
   mutate(file_path = str_c("./data/", names_dtf$file_names),
          data = map(file_path, read_csv)
@@ -94,10 +94,12 @@ fill_missing = function(vec){
 
 ## Apply this function to the columns of iris_with_missing using a map statement.
 
-```{r}
+```{r warning=FALSE}
 iris_data = 
   iris_with_missing %>%
   map(fill_missing) %>%
   as.tibble()
+
+knitr::kable(iris_data)
 ```
 
