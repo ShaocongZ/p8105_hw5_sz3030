@@ -1,0 +1,103 @@
+---
+title: "p8105_hw5_sz3030"
+author: "Shaocong Zhang"
+date: "11/20/2021"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(purrr)
+```
+
+# Problem 2
+
+## Start with a dataframe containing all file names; the list.files function will help
+
+```{r}
+names_dtf = 
+  tibble(
+    file_names = list.files("./data/")
+  )
+```
+
+## Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+
+```{r message=FALSE}
+names_dtf = names_dtf %>%
+  mutate(file_path = str_c("./data/", names_dtf$file_names),
+         data = map(file_path, read_csv)
+         ) %>%
+  select(-file_path) %>%
+  unnest()
+```
+
+## Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
+
+```{r}
+names_dtf = 
+  names_dtf %>%
+  mutate(subject = str_replace(file_names, ".csv", ""),
+         group = str_sub(file_names, 1, 3)) %>% 
+  pivot_longer(cols = "week_1":"week_8",
+               names_to = "week", 
+               values_to = "result"
+               ) %>% 
+  mutate(
+    week = str_replace(week, "week_", ""),
+    week = as.numeric(week)
+  ) %>%
+  select(-file_names)
+```
+
+## Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+
+```{r}
+names_dtf %>% 
+  ggplot(aes(x = week, y = result, group = subject, color = group)) + 
+  geom_point() + 
+  geom_path() + 
+  facet_grid(~group)
+```
+
+It is obvious that the result values of the experiment group increase linearly over time. Nearly all of the final result values of each subject in the experiment group increase. However, subjects in the control group have stable status as their result values don't have obvious changes over time.
+
+What's more, we can also conclude that subjects with high initial result values usually end up with higher result values and subjects with low initial result values usually end up with lower result values.
+
+# Problem 3
+
+## Load the dataset
+
+```{r}
+set.seed(10)
+
+iris_with_missing = iris %>% 
+  map_df(~replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species))
+```
+
+## Write function
+
+```{r}
+fill_missing = function(vec){
+  if (is.numeric(vec)) {
+    mean_value = round(mean(vec, na.rm = TRUE), 1)
+    vec = replace_na(vec, mean_value)
+  }else if (is.character(vec)) {
+    vec = replace_na(vec, "virginica")
+  } else {
+    stop("Cannot fill this type of missing values!")
+  }
+  return(vec)
+}
+```
+
+## Apply this function to the columns of iris_with_missing using a map statement.
+
+```{r}
+iris_data = 
+  iris_with_missing %>%
+  map(fill_missing) %>%
+  as.tibble()
+```
+
